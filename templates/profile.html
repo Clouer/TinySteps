@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block container %}
+
+<main class="container mt-3">
+    <div class="card my-4 mx-auto">
+        <div class="card-body m-2 m-md-4">
+            <article class="row">
+                <div class="col-5"><img src="{{ picture }}" class="img-fluid" alt=""></div>
+                <div class="col-7">
+                    <section class="teacher=info">
+                        <h1 class="h2">{{ name }}</h1>
+                        <p>{% for goal_keys, goal_value in goals.items() %}<span class="badge badge-secondary mr-2">{{ goal_value }}</span>{%endfor %}
+                            Рейтинг: {{ rating }} Ставка:
+                            {{ price }} /
+                            час</p>
+                        <p>{{ about }}</p>
+                    </section>
+                    <section class="available">
+                        <h4 class="mb-4 mt-5">Записаться на пробный урок</h4>
+
+                        {% for day in schedule %}
+                        <h6 class="mt-4">{{ days[day] }}</h6>
+                        {% if schedule[day] %}
+                        {% for time in schedule[day] %}
+                        <a href="/booking/{{ id }}/{{ day }}/{{ time[:2] }}/" class="btn btn-outline-success mr-2 mb-2">{{ time }} свободно</a>
+                        {% endfor %}
+                        {% else %}
+                        <p class="alert alert-secondary">Нет свободных уроков</p>
+                        {% endif %}
+                        {% endfor %}
+
+                    </section>
+                </div>
+            </article>
+        </div>
+    </div>
+</main>
+
+{% endblock %}
