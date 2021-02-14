@@ -12,7 +12,7 @@ from scripts import get_teacher, get_schedule, get_goals, all_goals, all_teacher
 app = Flask(__name__)
 csrf = CSRFProtect(app)
 
-SECRET_KEY = os.urandom(43)
+SECRET_KEY = "SUPER_secret_KEY"
 app.config['SECRET_KEY'] = SECRET_KEY
 
 
