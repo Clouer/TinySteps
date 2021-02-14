@@ -9,7 +9,8 @@
                 <div class="col-7">
                     <section class="teacher=info">
                         <h1 class="h2">{{ name }}</h1>
-                        <p>{% for goal_keys, goal_value in goals.items() %}<span class="badge badge-secondary mr-2">{{ goal_value }}</span>{%endfor %}
+                        <p>{% for goal_keys, goal_value in goals.items() %}<span class="badge badge-secondary mr-2">{{ goal_value }}</span>{%endfor
+                            %}
                             Рейтинг: {{ rating }} Ставка:
                             {{ price }} /
                             час</p>
@@ -22,7 +23,8 @@
                         <h6 class="mt-4">{{ days[day] }}</h6>
                         {% if schedule[day] %}
                         {% for time in schedule[day] %}
-                        <a href="/booking/{{ id }}/{{ day }}/{{ time[:2] }}/" class="btn btn-outline-success mr-2 mb-2">{{ time }} свободно</a>
+                        <a href="/booking/{{ id }}/{{ day }}/{{ time[:-3] }}/"
+                           class="btn btn-outline-success mr-2 mb-2">{{ time }} свободно</a>
                         {% endfor %}
                         {% else %}
                         <p class="alert alert-secondary">Нет свободных уроков</p>

@@ -1,11 +1,19 @@
+import os
 import random
 
-from flask import Flask, render_template, abort
+from flask import Flask, render_template, abort, request, redirect
+from flask_wtf.csrf import CSRFProtect
 
-from data import days
-from scripts import get_teacher, get_schedule, get_goals, all_goals, all_teachers
+from data import days, time_week
+from forms import BookingForm, RequestForm, SelectForm
+from scripts import get_teacher, get_schedule, get_goals, all_goals, all_teachers, booking_successful, \
+    request_successful, shuffle_random_teachers
 
 app = Flask(__name__)
+csrf = CSRFProtect(app)
+
+SECRET_KEY = os.urandom(43)
+app.config['SECRET_KEY'] = SECRET_KEY
 
 
 @app.route("/")
@@ -17,12 +25,26 @@ def render_main():
     for i in random.sample(teacher_list, 6):
         random_teachers.append(all_teachers()[i])
     return render_template("index.html",
-                           teachers=random_teachers)
+                           teachers=random_teachers,
+                           goals=all_goals(),
+                           title="TINYSTEPS")
 
 
-@app.route("/all/")
+@app.route("/all/", methods=["GET", "POST"])
 def render_all_teachers():
-    return render_template("all.html")
+    form = SelectForm()
+    if request.method == "POST":
+        order = form.order.data
+        if order == "random":
+            return redirect("/all/")
+        return render_template("all.html",
+                               teachers=all_teachers(),
+                               form=form,
+                               order=order)
+    return render_template("all.html",
+                           teachers=shuffle_random_teachers(),
+                           form=form,
+                           title="Все преподаватели")
 
 
 @app.route("/goals/<goal>/")
@@ -34,7 +56,9 @@ def render_goals(goal):
     if goal not in all_goals():
         abort(404)
     return render_template("goal.html",
-                           teachers=teachers_sorted)
+                           goal=all_goals()[goal],
+                           teachers=teachers_sorted,
+                           title=f"Преподаватели {all_goals()[goal]}")
 
 
 @app.route("/profiles/<int:teacher_id>/")
@@ -53,17 +77,37 @@ def render_teacher(teacher_id):
                            picture=current_teacher["picture"],
                            days=days,
                            schedule=schedule,
-                           goals=goals)
+                           goals=goals,
+                           title=current_teacher["name"])
 
 
 @app.route("/request/")
 def render_request():
-    return render_template("request.html")
+    form = RequestForm()
+    return render_template("request.html",
+                           form=form,
+                           title="Подбор преподавателя")
 
 
-@app.route("/request_done/")
+@app.route("/request_done/", methods=["GET", "POST"])
 def render_request_done():
-    return render_template("request_done.html")
+    if request.method == "GET":
+        return redirect("/request/")
+    form = RequestForm()
+    if form.validate_on_submit():
+        goal = form.goal.data
+        time = form.time.data
+        name = form.clientName.data
+        phone = form.clientPhone.data
+        request_successful(name, phone, goal, time)
+        return render_template("request_done.html",
+                               name=name,
+                               phone=phone,
+                               time=time_week[time],
+                               goal=all_goals()[goal],
+                               title="Запрос отправлен!")
+    else:
+        return render_template("request.html", form=form)
 
 
 @app.route("/booking/<int:teacher_id>/<day>/<time>/")
@@ -71,16 +115,36 @@ def render_booking(teacher_id, day, time):
     current_teacher = get_teacher(teacher_id)
     if current_teacher is None:
         abort(404)
+    form = BookingForm()
     return render_template("booking.html",
                            teacher_name=current_teacher["name"],
+                           teacher_id=teacher_id,
                            teacher_picture=current_teacher["picture"],
-                           day=days[day],
-                           time=f"{time}:00")
+                           day_key=day,
+                           day_value=days[day],
+                           time=f"{time}:00",
+                           form=form,
+                           title="Запись на пробный урок")
 
 
-@app.route("/booking_done/")
+@app.route("/booking_done/", methods=["POST", "GET"])
 def render_booking_done():
-    return render_template("booking_done.html")
+    if request.method == "GET":
+        return redirect("/")
+    form = BookingForm()
+    day = form.clientWeekday.data
+    time = form.clientTime.data
+    teacher = get_teacher(int(form.clientTeacher.data))
+    name = form.clientName.data
+    phone = form.clientPhone.data
+    booking_successful(form.clientTeacher.data, day, time, name, phone)
+    return render_template("booking_done.html",
+                           day=days[day],
+                           time=time,
+                           teacher_picture=teacher["picture"],
+                           name=name,
+                           phone=phone,
+                           title="Заявка успешно отправлена")
 
 
 app.run(debug=True)
