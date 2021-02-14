@@ -50,7 +50,6 @@ def booking_successful(teacher, day, time, name, phone):
         current_booking = json.load(f)
     if str(teacher) not in current_booking:
         current_booking[str(teacher)] = {"mon": [], "tue": [], "wed": [], "thu": [], "fri": [], "sat": [], "sun": []}
-        print("teacher not in")
     current_booking[str(teacher)][day].append({"time": time, "name": name, "phone": phone})
     with open("booking.json", "w", encoding="utf-8") as f:
         f.write(json.dumps(current_booking))

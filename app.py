@@ -113,7 +113,11 @@ def render_request_done():
 @app.route("/booking/<int:teacher_id>/<day>/<time>/")
 def render_booking(teacher_id, day, time):
     current_teacher = get_teacher(teacher_id)
-    if current_teacher is None:
+    try:
+        current_teacher["free"][day][f"{time}:00"]
+    except KeyError:
+        abort(404)
+    if current_teacher is None or not current_teacher["free"][day][f"{time}:00"]:
         abort(404)
     form = BookingForm()
     return render_template("booking.html",
