@@ -2,7 +2,10 @@ import os
 import random
 
 from flask import Flask, render_template, abort, request, redirect
+from flask_migrate import Migrate
+from flask_sqlalchemy import SQLAlchemy
 from flask_wtf.csrf import CSRFProtect
+from sqlalchemy.dialects.postgresql import JSON
 
 from data import days, time_week
 from forms import BookingForm, RequestForm, SelectForm
@@ -10,10 +13,66 @@ from scripts import get_teacher, get_schedule, get_goals, all_goals, all_teacher
     request_successful, shuffle_random_teachers
 
 app = Flask(__name__)
-csrf = CSRFProtect(app)
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+db = SQLAlchemy(app)
+migrate = Migrate(app, db)
 
+csrf = CSRFProtect(app)
 SECRET_KEY = "SUPER_secret_KEY"
 app.config['SECRET_KEY'] = SECRET_KEY
+
+teachers_goals_associations = db.Table("teachers_goals",
+                                       db.Column("teacher_id", db.Integer, db.ForeignKey("teachers.id")),
+                                       db.Column("goal_id", db.Integer, db.ForeignKey("goals.id"))
+                                       )
+
+requests_goals_associations = db.Table("requests_goals",
+                                       db.Column("request_id", db.Integer, db.ForeignKey("requests.id")),
+                                       db.Column("goal_id", db.Integer, db.ForeignKey("goals.id"))
+                                       )
+
+
+class Teacher(db.Model):
+    __tablename__ = "teachers"
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    about = db.Column(db.Text, nullable=False)
+    rating = db.Column(db.Float, nullable=False)
+    picture = db.Column(db.String(300), nullable=False)
+    price = db.Column(db.Integer, nullable=False)
+    free = db.Column(JSON)
+    bookings = db.relationship("Booking", cascade="all,delete", back_populates="teacher")
+    goals = db.relationship("Goal", secondary=teachers_goals_associations, back_populates="teachers")
+
+
+class Booking(db.Model):
+    __tablename__ = "bookings"
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    phone = db.Column(db.Integer, nullable=False)
+    day = db.Column(db.String(10), nullable=False)
+    time = db.Column(db.String(10), nullable=False)
+    teacher = db.relationship("Teacher", back_populates="bookings")
+    teacher_id = db.Column(db.Integer, db.ForeignKey("teachers.id"))
+
+
+class Goal(db.Model):
+    __tablename__ = "goals"
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(200), nullable=False)
+    name_abb = db.Column(db.String(100), nullable=False)
+    teachers = db.relationship("Teacher", secondary=teachers_goals_associations, back_populates="goals")
+    requests = db.relationship("Request", secondary=requests_goals_associations, back_populates="goals")
+
+
+class Request(db.Model):
+    __tablename__ = "requests"
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(300), nullable=False)
+    phone = db.Column(db.Integer, nullable=False)
+    time = db.Column(db.String(10), nullable=False)
+    goals = db.relationship("Goal", secondary=requests_goals_associations, back_populates="requests")
 
 
 @app.route("/")
@@ -152,4 +211,4 @@ def render_booking_done():
 
 
 if __name__ == '__main__':
-    app.run()
+    app.run(debug=True)

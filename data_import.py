@@ -1,9 +1,18 @@
 import json
 
 import data
+from app import Goal, db, Teacher
 
-with open("teachers.json", "w", encoding="utf-8") as teachers_json:
-    teachers_json.write(json.dumps(data.teachers))
+for goal_abb, goal_name in data.goals.items():
+    goal = Goal(name=goal_name, name_abb=goal_abb)
+    db.session.add(goal)
 
-with open("goals.json", "w", encoding="utf-8") as goals_json:
-    goals_json.write(json.dumps(data.goals))
+for teacher in data.teachers:
+    new_teacher = Teacher(name=teacher["name"], about=teacher["about"], rating=teacher["rating"],
+                          picture=teacher["picture"], price=teacher["price"], free=json.dumps(teacher["free"]))
+    db.session.add(new_teacher)
+    for goal in teacher["goals"]:
+        db_goal = db.session.query(Goal).filter(Goal.name_abb == goal).first()
+        new_teacher.goals.append(db_goal)
+
+db.session.commit()
