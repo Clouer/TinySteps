@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 7ff027c3da1b
+Revision ID: 13cbcbcd3d6e
 Revises: 
-Create Date: 2021-02-21 16:40:12.986705
+Create Date: 2021-02-22 14:18:06.192262
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '7ff027c3da1b'
+revision = '13cbcbcd3d6e'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -27,7 +27,7 @@ def upgrade():
     op.create_table('requests',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('name', sa.String(length=300), nullable=False),
-    sa.Column('phone', sa.Integer(), nullable=False),
+    sa.Column('phone', sa.String(length=15), nullable=False),
     sa.Column('time', sa.String(length=10), nullable=False),
     sa.PrimaryKeyConstraint('id')
     )
@@ -44,7 +44,7 @@ def upgrade():
     op.create_table('bookings',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('name', sa.String(length=100), nullable=False),
-    sa.Column('phone', sa.Integer(), nullable=False),
+    sa.Column('phone', sa.String(length=15), nullable=False),
     sa.Column('day', sa.String(length=10), nullable=False),
     sa.Column('time', sa.String(length=10), nullable=False),
     sa.Column('teacher_id', sa.Integer(), nullable=True),

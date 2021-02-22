@@ -1,41 +1,26 @@
 import json
-import random
 
-from data import goals
+import app as a
 
 
 def all_teachers():
-    with open("teachers.json", encoding="utf-8") as teachers_json:
-        return json.load(teachers_json)
+    return a.db.session.query(a.Teacher).all()
 
 
 def all_goals():
-    with open("goals.json", encoding="utf-8") as goals_json:
-        return json.load(goals_json)
+    return a.db.session.query(a.Goal).all()
 
 
 def get_teacher(teacher_id):
-    for i in all_teachers():
-        if i["id"] == teacher_id:
-            return i
-
-
-def shuffle_random_teachers():
-    teachers = all_teachers()
-    random.shuffle(teachers)
-    return teachers
+    return a.db.session.query(a.Teacher).get_or_404(teacher_id)
 
 
 def get_goals(teacher_id):
-    goals_dict = {}
-    personal_goals = get_teacher(teacher_id)["goals"]
-    for personal_goal in personal_goals:
-        goals_dict[personal_goal] = goals[personal_goal]
-    return goals_dict
+    return a.db.session.query(a.Teacher).get(teacher_id).goals
 
 
 def get_schedule(teacher_id):
-    schedule = get_teacher(teacher_id)["free"]
+    schedule = json.loads(a.db.session.query(a.Teacher).get(teacher_id).free)
     free_schedule = {}
     for day in schedule:
         free_schedule[day] = {}
@@ -46,25 +31,16 @@ def get_schedule(teacher_id):
 
 
 def booking_successful(teacher, day, time, name, phone):
-    with open("booking.json", encoding="utf-8") as f:
-        current_booking = json.load(f)
-    if str(teacher) not in current_booking:
-        current_booking[str(teacher)] = {"mon": [], "tue": [], "wed": [], "thu": [], "fri": [], "sat": [], "sun": []}
-    current_booking[str(teacher)][day].append({"time": time, "name": name, "phone": phone})
-    with open("booking.json", "w", encoding="utf-8") as f:
-        f.write(json.dumps(current_booking))
-    with open("teachers.json", encoding="utf-8") as f:
-        current_teacher = json.load(f)
-    for i in current_teacher:
-        if i["id"] == int(teacher):
-            i["free"][day][time] = False
-    with open("teachers.json", "w", encoding="utf-8") as f:
-        f.write(json.dumps(current_teacher))
+    schedule = get_schedule(teacher.id)
+    schedule[day][time] = False
+    teacher.free = json.dumps(schedule)
+    booking = a.Booking(name=name, phone=phone, day=day, time=time, teacher=teacher)
+    a.db.session.add(booking)
+    a.db.session.commit()
 
 
 def request_successful(name, phone, goal, time):
-    with open("request.json", encoding="utf-8") as f:
-        current_requests = json.load(f)
-    current_requests.append({"name": name, "phone": phone, "goal": goal, "time": time})
-    with open("request.json", "w", encoding="utf-8") as f:
-        f.write(json.dumps(current_requests))
+    new_request = a.Request(name=name, phone=phone, time=time)
+    a.db.session.add(new_request)
+    new_request.goals.append(goal)
+    a.db.session.commit()
